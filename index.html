@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Painel FGTS — Contax</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root{--teal:#00BCB8;--teal-dark:#008F8C;--teal-light:#E0F7F7;--red:#FF4757;--red-light:#FFF0F0;--gold:#F0A500;--gold-light:#FFF8E1;--bg:#F0F8F8;--surface:#fff;--border:#D0ECEB;--text:#1A2A2A;--text2:#4A6060;--text3:#8AABAB;}
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--bg);color:var(--text);font-family:"Segoe UI",Arial,sans-serif;min-height:100vh;}
+  header{background:linear-gradient(135deg,#00BCB8 0%,#007A78 100%);padding:18px 40px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 4px 20px rgba(0,188,184,0.3);}
+  .logo-area{display:flex;align-items:center;gap:16px;}
+  .logo-box{background:white;border-radius:10px;padding:7px 16px;}
+  .logo-text{font-size:1.5rem;font-weight:900;color:var(--teal);letter-spacing:-0.05em;}
+  .header-title h1{color:white;font-size:1.1rem;font-weight:700;}
+  .header-title p{color:rgba(255,255,255,0.75);font-size:.78rem;margin-top:2px;}
+  .header-kpis{display:flex;gap:28px;}
+  .hkpi{text-align:right;}
+  .hkpi-label{color:rgba(255,255,255,0.7);font-size:.7rem;text-transform:uppercase;letter-spacing:.08em;}
+  .hkpi-value{color:white;font-size:1.2rem;font-weight:700;}
+  .nav-wrap{background:white;border-bottom:2px solid var(--border);padding:0 40px;display:flex;gap:4px;overflow-x:auto;}
+  .nav-tab{padding:14px 20px;font-size:.83rem;font-weight:600;color:var(--text3);cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;white-space:nowrap;transition:all .2s;display:flex;align-items:center;gap:8px;user-select:none;}
+  .nav-tab:hover{color:var(--teal);}
+  .nav-tab.active{color:var(--teal-dark);border-bottom-color:var(--teal);}
+  .nav-tab.sim-tab.active{color:#D4891A;border-bottom-color:var(--gold);}
+  .tab-count{background:var(--teal-light);color:var(--teal-dark);border-radius:20px;padding:1px 8px;font-size:.7rem;font-weight:700;}
+  .nav-tab.active .tab-count{background:var(--teal);color:white;}
+  .page{display:none;}.page.active{display:block;}
+  .container{max-width:1400px;margin:0 auto;padding:28px 24px;}
+  .home-intro{margin-bottom:24px;}
+  .home-intro h2{font-size:1.1rem;font-weight:700;}
+  .home-intro p{font-size:.85rem;color:var(--text2);margin-top:4px;}
+  .cards-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:20px;}
+  .nav-card{background:white;border:1px solid var(--border);border-radius:14px;padding:28px;cursor:pointer;transition:all .25s;position:relative;overflow:hidden;display:flex;align-items:flex-start;gap:20px;}
+  .nav-card::before{content:"";position:absolute;top:0;left:0;right:0;height:4px;background:linear-gradient(90deg,var(--teal),var(--teal-dark));}
+  .nav-card.red::before{background:linear-gradient(90deg,var(--red),#C0392B);}
+  .nav-card.gold::before{background:linear-gradient(90deg,var(--gold),#D4891A);}
+  .nav-card:hover{transform:translateY(-4px);box-shadow:0 12px 36px rgba(0,188,184,0.15);border-color:var(--teal);}
+  .nav-card.red:hover{border-color:var(--red);}
+  .nav-card.gold:hover{box-shadow:0 12px 36px rgba(240,165,0,0.2);border-color:var(--gold);}
+  .nav-card-icon{width:56px;height:56px;background:var(--teal-light);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:1.8rem;flex-shrink:0;}
+  .nav-card.red .nav-card-icon{background:var(--red-light);}
+  .nav-card.gold .nav-card-icon{background:var(--gold-light);}
+  .nav-card-title{font-size:1rem;font-weight:700;margin-bottom:6px;}
+  .nav-card-desc{font-size:.82rem;color:var(--text2);line-height:1.6;}
+  .nav-card-value{margin-top:12px;font-size:1.4rem;font-weight:700;color:var(--teal-dark);}
+  .nav-card.red .nav-card-value{color:var(--red);}
+  .nav-card.gold .nav-card-value{color:var(--gold);}
+  .nav-card-sub{font-size:.75rem;color:var(--text3);}
+  .nav-card-arrow{position:absolute;right:20px;top:50%;transform:translateY(-50%);font-size:1.2rem;opacity:.4;transition:opacity .2s;color:var(--teal);}
+  .nav-card.gold .nav-card-arrow{color:var(--gold);}
+  .nav-card:hover .nav-card-arrow{opacity:1;}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.04);margin-bottom:20px;}
+  .card-header{background:linear-gradient(135deg,var(--teal) 0%,var(--teal-dark) 100%);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;}
+  .card-header.red{background:linear-gradient(135deg,#FF4757 0%,#C0392B 100%);}
+  .card-title{color:white;font-size:.88rem;font-weight:600;}
+  .card-badge{background:rgba(255,255,255,0.2);color:white;border-radius:20px;padding:2px 10px;font-size:.72rem;}
+  .card-body{padding:20px;}
+  .stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px;}
+  .stat{background:white;border:1px solid var(--border);border-radius:10px;padding:16px;border-top:3px solid var(--teal);}
+  .stat.red{border-top-color:var(--red);}
+  .stat-label{font-size:.7rem;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;font-weight:600;margin-bottom:6px;}
+  .stat-value{font-size:1.3rem;font-weight:700;color:var(--teal-dark);}
+  .stat.red .stat-value{color:var(--red);}
+  .sim-section{background:white;border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:20px;}
+  .sim-section-header{background:linear-gradient(135deg,#F0A500,#D4891A);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;}
+  .sim-section-title{color:white;font-size:.88rem;font-weight:600;}
+  .sim-section-badge{background:rgba(255,255,255,0.2);color:white;border-radius:20px;padding:2px 10px;font-size:.72rem;}
+  .sim-section-body{padding:20px;}
+  .sim-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+  .filter-block{border:1px solid var(--border);border-radius:10px;overflow:hidden;}
+  .filter-block-header{background:#F8F9FA;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);}
+  .filter-block-title{font-size:.82rem;font-weight:700;color:var(--text);}
+  .filter-actions{display:flex;gap:8px;}
+  .filter-block-body{padding:14px;max-height:320px;overflow-y:auto;}
+  .click-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;}
+  .click-cards.comp-grid{grid-template-columns:repeat(auto-fill,minmax(110px,1fr));}
+  .click-card{background:white;border:2px solid var(--border);border-radius:8px;padding:10px 12px;cursor:pointer;transition:all .18s;position:relative;}
+  .click-card:hover{border-color:var(--gold);}
+  .click-card.sel{border-color:var(--gold);background:var(--gold-light);}
+  .click-card-name{font-size:.72rem;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:3px;}
+  .click-card-value{font-size:.82rem;font-weight:700;color:var(--teal-dark);}
+  .click-card.sel .click-card-value{color:var(--gold);}
+  .click-card-chk{position:absolute;top:6px;right:6px;width:18px;height:18px;border-radius:50%;background:var(--gold);color:white;display:none;align-items:center;justify-content:center;font-size:.6rem;font-weight:700;}
+  .click-card.sel .click-card-chk{display:flex;}
+  .sim-resultado{background:white;border:2px solid var(--gold);border-radius:12px;padding:24px;margin-top:20px;}
+  .sim-resultado-title{font-size:.9rem;font-weight:700;color:#7A6000;margin-bottom:20px;}
+  .sim-kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px;}
+  .sim-kpi{border-radius:10px;padding:18px;text-align:center;}
+  .sim-kpi.total{background:#F8F9FA;border:1px solid #E0E0E0;}
+  .sim-kpi.pagar{background:#E8F5E9;border:1px solid #A5D6A7;}
+  .sim-kpi.restante{background:#FFEBEE;border:1px solid #FFCDD2;}
+  .sim-kpi-label{font-size:.7rem;text-transform:uppercase;letter-spacing:.08em;font-weight:600;margin-bottom:8px;color:var(--text3);}
+  .sim-kpi.pagar .sim-kpi-label{color:#2E7D32;}
+  .sim-kpi.restante .sim-kpi-label{color:#C62828;}
+  .sim-kpi-value{font-size:1.3rem;font-weight:700;color:var(--text);}
+  .sim-kpi.pagar .sim-kpi-value{color:#388E3C;}
+  .sim-kpi.restante .sim-kpi-value{color:#D32F2F;}
+  .sim-kpi-sub{font-size:.72rem;color:var(--text3);margin-top:4px;}
+  .sim-breakdown{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  .breakdown-block{border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+  .breakdown-header{background:#F8F9FA;padding:10px 14px;font-size:.78rem;font-weight:700;color:var(--text);border-bottom:1px solid var(--border);}
+  .breakdown-body{max-height:200px;overflow-y:auto;}
+  .breakdown-row{display:flex;align-items:center;justify-content:space-between;padding:8px 14px;border-bottom:1px solid #F5F5F5;font-size:.78rem;}
+  .breakdown-row.sel-row{background:#FFF8E1;}
+  .breakdown-name{color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:60%;}
+  .breakdown-val{font-family:monospace;font-weight:600;color:var(--teal-dark);}
+  .breakdown-row.sel-row .breakdown-val{color:var(--gold);}
+  table{width:100%;border-collapse:collapse;font-size:.8rem;}
+  thead th{background:var(--teal-light);color:var(--teal-dark);padding:10px 12px;text-align:left;font-weight:600;font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;border-bottom:2px solid var(--teal);}
+  tbody tr{border-bottom:1px solid #f0f5f5;transition:background .1s;}
+  tbody tr:hover{background:var(--teal-light);}
+  tbody td{padding:9px 12px;}
+  .right{text-align:right;}.mono{font-family:monospace;}.bold{font-weight:600;}
+  .rank{width:24px;height:24px;background:var(--teal);color:white;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;}
+  .rank.gold{background:#F0A500;}.rank.silver{background:#9EAAB4;}.rank.bronze{background:#B87333;}
+  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.55);backdrop-filter:blur(4px);z-index:100;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s;}
+  .modal-overlay.open{opacity:1;pointer-events:all;}
+  .modal{background:white;border-radius:16px;width:92%;max-width:860px;max-height:85vh;overflow:hidden;display:flex;flex-direction:column;transform:translateY(24px);transition:transform .25s;}
+  .modal-overlay.open .modal{transform:translateY(0);}
+  .modal-header{display:flex;align-items:center;justify-content:space-between;padding:18px 24px;border-bottom:1px solid var(--border);}
+  .modal-header-left h3{font-size:1rem;font-weight:700;}
+  .modal-header-left p{font-size:.78rem;color:var(--text3);margin-top:2px;}
+  .modal-close{width:32px;height:32px;border-radius:8px;background:#f5f5f5;border:none;cursor:pointer;font-size:1rem;}
+  .modal-close:hover{background:#ffebee;color:var(--red);}
+  .modal-search{padding:14px 24px;border-bottom:1px solid var(--border);}
+  .modal-search input{width:100%;border:1px solid var(--border);border-radius:8px;padding:9px 14px;font-size:.85rem;outline:none;font-family:inherit;}
+  .modal-search input:focus{border-color:var(--teal);}
+  .modal-body{overflow-y:auto;flex:1;}
+  .modal-table{width:100%;border-collapse:collapse;font-size:.8rem;}
+  .modal-table thead th{background:var(--teal-light);color:var(--teal-dark);padding:10px 16px;text-align:left;font-weight:600;font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;position:sticky;top:0;border-bottom:2px solid var(--teal);}
+  .modal-table thead th.red-h{background:var(--red-light);color:var(--red);border-bottom-color:var(--red);}
+  .modal-table tbody tr{border-bottom:1px solid #f5f5f5;}
+  .modal-table tbody tr:hover{background:var(--teal-light);}
+  .modal-table tbody td{padding:9px 16px;}
+  .rank-n{width:22px;height:22px;background:var(--teal);color:white;border-radius:5px;display:inline-flex;align-items:center;justify-content:center;font-size:.68rem;font-weight:700;}
+  .rank-n.red-r{background:var(--red);}.rank-n.gold{background:#F0A500;}.rank-n.silver{background:#9EAAB4;}.rank-n.bronze{background:#B87333;}
+  .btn{padding:9px 18px;border-radius:8px;font-size:.82rem;font-weight:600;cursor:pointer;border:none;transition:all .15s;}
+  .btn-sm{padding:5px 12px;font-size:.74rem;}
+  .btn-gold{background:var(--gold);color:white;}.btn-gold:hover{background:#D4891A;}
+  .btn-gray{background:#f5f5f5;color:var(--text2);border:1px solid #ddd;}.btn-gray:hover{background:#eee;}
+  .back-btn{display:inline-flex;align-items:center;gap:8px;background:var(--teal-light);color:var(--teal-dark);border:1px solid var(--teal);border-radius:8px;padding:8px 16px;font-size:.82rem;font-weight:600;cursor:pointer;margin-bottom:20px;transition:all .15s;}
+  .back-btn:hover{background:var(--teal);color:white;}
+  footer{text-align:center;padding:20px;color:var(--text3);font-size:.75rem;border-top:1px solid var(--border);margin-top:8px;}
+  @media(max-width:900px){.cards-grid{grid-template-columns:1fr;}.stats-row{grid-template-columns:1fr 1fr;}.sim-grid{grid-template-columns:1fr;}.sim-kpis{grid-template-columns:1fr;}.sim-breakdown{grid-template-columns:1fr;}header{flex-direction:column;gap:12px;}.nav-wrap{padding:0 16px;}.container{padding:20px 16px;}}
+
+  #tableTomador tbody tr:hover { background: #E0F7F7; transition: background .15s; }
+  #tableTomador tbody tr { transition: background .15s; }
+
+
+  #tableComp tbody tr:hover { background: #E0F7F7; transition: background .15s; }
+  #tableComp tbody tr { transition: background .15s; }
+
+</style>
+</head>
+<body>
+<header>
+  <div class="logo-area">
+    <div class="logo-box"><span class="logo-text">CONTAX</span></div>
+    <div class="header-title">
+      <h1>Painel de Acompanhamento — FGTS</h1>
+      <p>Consolidado · abr/2026 · 109,139 registros</p>
+    </div>
+  </div>
+  <div class="header-kpis">
+    <div class="hkpi"><div class="hkpi-label">Total FGTS na Guia</div><div class="hkpi-value">R$ 13.573.389,13</div></div>
+    <div class="hkpi"><div class="hkpi-label">Tomadores</div><div class="hkpi-value">26</div></div>
+    <div class="hkpi"><div class="hkpi-label">Competências</div><div class="hkpi-value">27</div></div>
+  </div>
+</header>
+<div class="nav-wrap">
+  <div class="nav-tab active" onclick="showPage('home')">🏠 Visão Geral</div>
+  <div class="nav-tab" onclick="showPage('tomador')">🏢 Por Tomador</div>
+  <div class="nav-tab" onclick="showPage('competencia')">📅 Por Competência</div>
+  <div class="nav-tab" onclick="showPage('ativos')">✅ Ativos <span class="tab-count">9,822</span></div>
+  <div class="nav-tab" onclick="showPage('demitidos')">🔴 Demitidos <span class="tab-count">13,913</span></div>
+  <div class="nav-tab sim-tab" onclick="showPage('simulador')">💰 Simulador de Pagamento</div>
+</div>
+<div class="page active" id="page-home">
+  <div class="container">
+    <div class="home-intro"><h2>Selecione uma visão para explorar</h2><p>Clique em um dos cards abaixo</p></div>
+    <div class="cards-grid">
+      <div class="nav-card" onclick="showPage('tomador')">
+        <div class="nav-card-icon">🏢</div>
+        <div class="nav-card-info">
+          <div class="nav-card-title">FGTS por Tomador</div>
+          <div class="nav-card-desc">Distribuição do FGTS agrupado por empresa tomadora</div>
+          <div class="nav-card-value">R$ 14.692.081,80</div>
+          <div class="nav-card-sub">26 tomadores · TIM S A lidera com R$ 3.7M</div>
+        </div><span class="nav-card-arrow">›</span>
+      </div>
+      <div class="nav-card" onclick="showPage('competencia')">
+        <div class="nav-card-icon">📅</div>
+        <div class="nav-card-info">
+          <div class="nav-card-title">FGTS por Competência</div>
+          <div class="nav-card-desc">Evolução mensal do FGTS ao longo do período consolidado</div>
+          <div class="nav-card-value">R$ 1.253.779,23</div>
+          <div class="nav-card-sub">Pico em abr/2026 · 28 competências</div>
+        </div><span class="nav-card-arrow">›</span>
+      </div>
+      <div class="nav-card" onclick="showPage('ativos')">
+        <div class="nav-card-icon">✅</div>
+        <div class="nav-card-info">
+          <div class="nav-card-title">Colaboradores Ativos</div>
+          <div class="nav-card-desc">Colaboradores sem data de demissão registrada</div>
+          <div class="nav-card-value">R$ 8.755.391,56</div>
+          <div class="nav-card-sub">9,822 colaboradores ativos</div>
+        </div><span class="nav-card-arrow">›</span>
+      </div>
+      <div class="nav-card red" onclick="showPage('demitidos')">
+        <div class="nav-card-icon">🔴</div>
+        <div class="nav-card-info">
+          <div class="nav-card-title">Colaboradores Demitidos</div>
+          <div class="nav-card-desc">Colaboradores com data de demissão registrada</div>
+          <div class="nav-card-value">R$ 5.936.690,24</div>
+          <div class="nav-card-sub">13,913 colaboradores demitidos</div>
+        </div><span class="nav-card-arrow">›</span>
+      </div>
+      <div class="nav-card gold" onclick="showPage('simulador')" style="grid-column:1/-1">
+        <div class="nav-card-icon">💰</div>
+        <div class="nav-card-info">
+          <div class="nav-card-title">Simulador de Pagamento</div>
+          <div class="nav-card-desc">Selecione tomadores e competências para simular o pagamento. Veja o valor a pagar e o saldo restante em tempo real.</div>
+          <div class="nav-card-value">R$ 14.692.081,80</div>
+          <div class="nav-card-sub">Selecione qualquer combinação de tomadores e competências</div>
+        </div><span class="nav-card-arrow" style="color:var(--gold)">›</span>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="page" id="page-tomador">
+  <div class="container">
+    <button class="back-btn" onclick="showPage('home')">← Voltar</button>
+    <div class="card">
+      <div class="card-header"><span class="card-title">FGTS por Tomador</span><span class="card-badge">26 tomadores</span></div>
+      <div class="card-body"><div style="position:relative;height:400px"><canvas id="chartTomador"></canvas></div></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><span class="card-title">Tabela por Tomador</span></div>
+      <div class="card-body"><table id="tableTomador"><thead><tr><th>#</th><th>Tomador</th><th class="right">Valor FGTS</th><th class="right">% Total</th></tr></thead><tbody></tbody></table></div>
+    </div>
+  </div>
+</div>
+<div class="page" id="page-competencia">
+  <div class="container">
+    <button class="back-btn" onclick="showPage('home')">← Voltar</button>
+    <div class="card">
+      <div class="card-header"><span class="card-title">FGTS por Competência</span><span class="card-badge">28 competências</span></div>
+      <div class="card-body"><div style="position:relative;height:340px"><canvas id="chartComp"></canvas></div></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><span class="card-title">Tabela por Competência</span></div>
+      <div class="card-body"><table id="tableComp"><thead><tr><th>#</th><th>Competência</th><th class="right">Valor FGTS</th><th class="right">% Total</th></tr></thead><tbody></tbody></table></div>
+    </div>
+  </div>
+</div>
+<div class="page" id="page-ativos">
+  <div class="container">
+    <button class="back-btn" onclick="showPage('home')">← Voltar</button>
+    <div class="stats-row">
+      <div class="stat"><div class="stat-label">Total Colaboradores</div><div class="stat-value">9,822</div></div>
+      <div class="stat"><div class="stat-label">Total FGTS</div><div class="stat-value">R$ 8.755.391,56</div></div>
+      <div class="stat"><div class="stat-label">Média / Colaborador</div><div class="stat-value">R$ 891</div></div>
+      <div class="stat"><div class="stat-label">Maior Valor</div><div class="stat-value">R$ 37K</div></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><span class="card-title">Distribuição por Faixa de Valor</span><span class="card-badge">9,822 colaboradores</span></div>
+      <div class="card-body"><div style="position:relative;height:280px"><canvas id="chartFaixaAtivos"></canvas></div></div>
+    </div>
+    <div class="card">
+      <div class="card-header" style="justify-content:space-between">
+        <span class="card-title">Lista de Colaboradores Ativos</span>
+        <button onclick="openModal('ativos')" style="background:rgba(255,255,255,0.2);color:white;border:1px solid rgba(255,255,255,0.4);border-radius:8px;padding:6px 16px;font-size:.8rem;font-weight:600;cursor:pointer;">Ver todos os 9,822 →</button>
+      </div>
+      <div class="card-body"><p style="font-size:.85rem;color:var(--text2)">Clique em <strong>"Ver todos"</strong> para abrir a lista completa ordenada por maior FGTS.</p></div>
+    </div>
+  </div>
+</div>
+<div class="page" id="page-demitidos">
+  <div class="container">
+    <button class="back-btn" onclick="showPage('home')">← Voltar</button>
+    <div class="stats-row">
+      <div class="stat red"><div class="stat-label">Total Colaboradores</div><div class="stat-value">13,913</div></div>
+      <div class="stat red"><div class="stat-label">Total FGTS</div><div class="stat-value">R$ 5.936.690,24</div></div>
+      <div class="stat red"><div class="stat-label">Média / Colaborador</div><div class="stat-value">R$ 427</div></div>
+      <div class="stat red"><div class="stat-label">Maior Valor</div><div class="stat-value">R$ 28K</div></div>
+    </div>
+    <div class="card">
+      <div class="card-header red"><span class="card-title">Distribuição por Faixa de Valor</span><span class="card-badge">13,913 colaboradores</span></div>
+      <div class="card-body"><div style="position:relative;height:280px"><canvas id="chartFaixaDemit"></canvas></div></div>
+    </div>
+    <div class="card">
+      <div class="card-header red" style="justify-content:space-between">
+        <span class="card-title">Lista de Colaboradores Demitidos</span>
+        <button onclick="openModal('demitidos')" style="background:rgba(255,255,255,0.2);color:white;border:1px solid rgba(255,255,255,0.4);border-radius:8px;padding:6px 16px;font-size:.8rem;font-weight:600;cursor:pointer;">Ver todos os 13,913 →</button>
+      </div>
+      <div class="card-body"><p style="font-size:.85rem;color:var(--text2)">Clique em <strong>"Ver todos"</strong> para abrir a lista completa ordenada por maior FGTS.</p></div>
+    </div>
+  </div>
+</div>
+<div class="page" id="page-simulador">
+  <div class="container">
+    <button class="back-btn" onclick="showPage('home')">← Voltar</button>
+    <div class="sim-section">
+      <div class="sim-section-header">
+        <span class="sim-section-title">💰 Simulador de Pagamento FGTS</span>
+        <span class="sim-section-badge">Selecione tomadores e/ou competências</span>
+      </div>
+      <div class="sim-section-body">
+        <p style="font-size:.84rem;color:var(--text2);margin-bottom:20px;line-height:1.7">Marque os <strong>tomadores</strong> e as <strong>competências</strong> que serão pagos. O resultado aparece automaticamente abaixo.</p>
+        <div class="sim-grid">
+          <div class="filter-block">
+            <div class="filter-block-header">
+              <span class="filter-block-title">🏢 Tomadores <span id="cntTomador" style="color:var(--gold);margin-left:6px;font-size:.75rem"></span></span>
+              <div class="filter-actions">
+                <button class="btn btn-sm btn-gold" onclick="selAll('T')">Todos</button>
+                <button class="btn btn-sm btn-gray" onclick="clrAll('T')">Limpar</button>
+              </div>
+            </div>
+            <div class="filter-block-body"><div class="click-cards" id="simCardsTomador"></div></div>
+          </div>
+          <div class="filter-block">
+            <div class="filter-block-header">
+              <span class="filter-block-title">📅 Competências <span id="cntComp" style="color:var(--gold);margin-left:6px;font-size:.75rem"></span></span>
+              <div class="filter-actions">
+                <button class="btn btn-sm btn-gold" onclick="selAll('C')">Todas</button>
+                <button class="btn btn-sm btn-gray" onclick="clrAll('C')">Limpar</button>
+              </div>
+            </div>
+            <div class="filter-block-body"><div class="click-cards comp-grid" id="simCardsComp"></div></div>
+          </div>
+        </div>
+        <div class="sim-resultado">
+          <div class="sim-resultado-title">📊 Resultado da Simulação</div>
+          <div class="sim-kpis">
+            <div class="sim-kpi total"><div class="sim-kpi-label">Total Geral da Base</div><div class="sim-kpi-value">R$ 14.692.081,80</div><div class="sim-kpi-sub">100% do consolidado</div></div>
+            <div class="sim-kpi pagar"><div class="sim-kpi-label">Valor a Pagar (simulação)</div><div class="sim-kpi-value" id="simValPagar">R$ 0,00</div><div class="sim-kpi-sub" id="simPctPagar">0% do total</div></div>
+            <div class="sim-kpi restante"><div class="sim-kpi-label">Saldo Restante</div><div class="sim-kpi-value" id="simValRest">R$ 14.692.081,80</div><div class="sim-kpi-sub" id="simPctRest">100% do total</div></div>
+          </div>
+          <div class="sim-breakdown">
+            <div class="breakdown-block"><div class="breakdown-header">Tomadores selecionados</div><div class="breakdown-body" id="bdTomador"><div style="padding:14px;text-align:center;color:var(--text3);font-size:.8rem">Nenhum tomador selecionado</div></div></div>
+            <div class="breakdown-block"><div class="breakdown-header">Competências selecionadas</div><div class="breakdown-body" id="bdComp"><div style="padding:14px;text-align:center;color:var(--text3);font-size:.8rem">Nenhuma competência selecionada</div></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- Modal Tomadores por Competência -->
+<div class="modal-overlay" id="compModalOverlay" onclick="closeCompModalBg(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-header-left">
+        <h3 id="compModalTitle" style="color:#008F8C"></h3>
+        <p id="compModalSubtitle" style="font-size:.8rem;color:#4A6060;margin-top:3px"></p>
+      </div>
+      <button class="modal-close" onclick="closeCompModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <table class="modal-table">
+        <thead>
+          <tr>
+            <th style="color:#008F8C">#</th>
+            <th style="color:#008F8C">Tomador</th>
+            <th style="color:#008F8C;text-align:right">Valor FGTS</th>
+            <th style="color:#008F8C;text-align:center">Status</th>
+          </tr>
+        </thead>
+        <tbody id="compModalTbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Competências por Tomador -->
+<div class="modal-overlay" id="tomadorModalOverlay" onclick="closeTomadorModalBg(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-header-left">
+        <h3 id="tomadorModalTitle" style="color:#008F8C"></h3>
+        <p id="tomadorModalSubtitle" style="font-size:.8rem;color:#4A6060;margin-top:3px"></p>
+      </div>
+      <button class="modal-close" onclick="closeTomadorModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <table class="modal-table">
+        <thead>
+          <tr>
+            <th style="color:#008F8C">#</th>
+            <th style="color:#008F8C">Competência</th>
+            <th style="color:#008F8C;text-align:right">Valor FGTS</th>
+            <th style="color:#008F8C;text-align:center">Status</th>
+          </tr>
+        </thead>
+        <tbody id="tomadorModalTbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalOverlay" onclick="closeModalBg(event)">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-header-left"><h3 id="modalTitle"></h3><p id="modalSubtitle"></p></div><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="modal-search"><input type="text" id="modalSearch" placeholder="🔍 Buscar por nome..." oninput="filterModal()"></div>
+    <div class="modal-body"><table class="modal-table"><thead id="modalThead"></thead><tbody id="modalTbody"></tbody></table></div>
+  </div>
+</div>
+<footer>Contax · Painel FGTS · Gerado automaticamente · Competência abr/2026</footer>
+<script>
+const ATIVOS=[{"n":"RENATA DE SOUSA OLIVEIRA MATOS","v":35984.0},{"n":"MARIA NAZARE DE QUEIROZ VEIGA NETA","v":33520.0},{"n":"RENATA XAVIER ANTUNES","v":26600.0},{"n":"RICARDO SANTOS DA SILVA","v":26240.0},{"n":"PAULO JOSE CAPITULINO DE QUEIROZ","v":26159.6},{"n":"JANAILMA MARTINS DE VASCONCELOS","v":25920.0},{"n":"JAIR SIQUEIRA JUNIOR","v":25841.6},{"n":"ALEXANDRE YUKIO OKUNO","v":25003.16},{"n":"GUSTAVO FIGUEIREDO DOS SANTOS","v":24438.0},{"n":"ANDREA PEREIRA SILVA","v":24000.0},{"n":"CRISTIANE CUNHA SANTANA DE OLIVEIRA","v":24000.0},{"n":"FABIO SAMPAIO ALBERGARIA","v":22400.0},{"n":"TIANA MORAES DE SOUSA","v":21949.16},{"n":"VILTON DA COSTA CRUZ","v":21945.44},{"n":"STERLAINE PRISCILA ARAUJO GOMES","v":21887.79},{"n":"MARIA DA CONCEICAO FARANI SANTANA","v":21053.68},{"n":"JOSIANA FRANCA DA SILVA","v":20630.53},{"n":"KISSILA CARVALHO GOMES","v":20331.2},{"n":"CIBELY MAZALLA GIBULO","v":20240.0},{"n":"GIOVANNI BITENCOURT SANTOS SILVA","v":19272.8}];
+const DEMITIDOS=[{"n":"ANA PAULA OLIVEIRA MONTEIRO","v":27720.0},{"n":"ANDRE LUIS FRANCO PEREIRA","v":15600.0},{"n":"ROBERTO COSTA BENTO BONINI","v":14520.0},{"n":"PAULA DAYANE MONTEIRO LIMA","v":14080.0},{"n":"LUCI NELMA SILVA DE AZEVEDO DOS SANTOS","v":13730.0},{"n":"THAIS MAESTRELLO","v":13385.79},{"n":"KAROLYNE SILVEIRA SANTOS","v":12280.0},{"n":"DANIEL SOUZA PIMENTEL","v":12277.39},{"n":"ANDREIA NASCIMENTO SILVA","v":11097.5},{"n":"ISADORA BOMFIM BARROS","v":10999.99},{"n":"RODRIGO JAQUIS DOS SANTOS","v":10710.0},{"n":"RENATA CAROLINA MARTINS RICHAQUE DA COSTA","v":10687.97},{"n":"RICARDO JULIANO BRAVO","v":10200.0},{"n":"MARIANA ALVES DE SOUZA","v":9600.0},{"n":"EDUARDO DA SILVA SANTIAGO","v":9371.35},{"n":"MARCELO FERREIRA FARIA","v":9323.03},{"n":"ROBERTA DOS REIS GUALBERTO DA SILVA","v":8549.32},{"n":"GLAUCIO ESAKI TAMURA","v":8240.0},{"n":"JOYCE DANIELA ALVES VINCI","v":8217.33},{"n":"EMERSON DE LIRA MATTOSO","v":8160.0}];
+const TOMADORES=[{"n":"CONTAX S.A. - EM RECUPERACAO JUDICIAL","v":3552992.03},{"n":"TIM S A","v":3272423.24},{"n":"OI S.A. - EM RECUPERACAO JUDICIAL","v":1880786.27},{"n":"ELETROPAULO METROPOLITANA ELETRICIDADE DE SAO PAULO S.A.","v":1078827.26},{"n":"BANCO ITAUCARD S.A.","v":898771.42},{"n":"YOUTILITY CENTER DO BRASIL SERVICOS DE INFORMATICA E TELEMARKETING LTDA","v":624100.26},{"n":"COMPANHIA ENERGETICA DO CEARA","v":601106.17},{"n":"TICKET SERVICOS SA","v":344301.66},{"n":"AMPLA ENERGIA E SERVICOS S.A.","v":286398.0},{"n":"COMPANHIA DE SANEAMENTO DE MINAS GERAIS COPASA MG","v":153619.73},{"n":"MUNICIPIO DE BELO HORIZONTE","v":145950.37},{"n":"ELFE OPERACAO E MANUTENCAO S.A. - EM RECUPERACAO JUDICIAL","v":139425.93},{"n":"BANCO DO ESTADO DO RIO GRANDE DO SUL SA","v":127698.96},{"n":"MILETO SERVIÇOS POR ASSINATURA DE TELEVISÃO S.A","v":123669.84},{"n":"PETROLEO BRASILEIRO S A PETROBRAS","v":94163.37},{"n":"360 IMPRIMIR COMPOSICAO DE PROJETOS GRAFICOS LTDA","v":62823.4},{"n":"ENEL X BRASIL S.A.","v":42391.56},{"n":"EMPRESA BRASILEIRA DE CORREIOS E TELEGRAFOS","v":40469.96},{"n":"JUNTOS SOMOS MAIS FIDELIZACAO S.A.","v":38799.91},{"n":"AGENCIA NACIONAL DE SAUDE SUPLEMENTAR","v":33844.62},{"n":"FLUMINENSE FOOTBALL CLUB","v":23816.04},{"n":"QV BENEFICIOS EM SAUDE LTDA","v":2119.26},{"n":"CREFISA SA CREDITO FINANCIAMENTO E INVESTIMENTOS","v":2000.0},{"n":"CAIXA ECONOMICA FEDERAL","v":1818.76},{"n":"PETROBRAS TRANSPORTE S.A. - TRANSPETRO","v":559.11},{"n":"TELEMAR NORTE LESTE S/A - EM RECUPERACAO JUDICIAL","v":512.0}];
+const COMPETENCIAS=[{"c":"abr/2024","v":121919.86},{"c":"mai/2024","v":264304.58},{"c":"jun/2024","v":278845.36},{"c":"jul/2024","v":295529.43},{"c":"ago/2024","v":328989.93},{"c":"set/2024","v":349262.52},{"c":"out/2024","v":357155.04},{"c":"nov/2024","v":603906.01},{"c":"dez/2024","v":430568.38},{"c":"13o/2024","v":182080.42},{"c":"jan/2025","v":581166.33},{"c":"fev/2025","v":618020.13},{"c":"mar/2025","v":761150.12},{"c":"abr/2025","v":831475.22},{"c":"mai/2025","v":558564.23},{"c":"jun/2025","v":594982.84},{"c":"jul/2025","v":967055.67},{"c":"ago/2025","v":239951.42},{"c":"set/2025","v":482736.87},{"c":"out/2025","v":351747.49},{"c":"nov/2025","v":950551.2},{"c":"dez/2025","v":786700.09},{"c":"13o/2025","v":269709.15},{"c":"jan/2026","v":769037.07},{"c":"fev/2026","v":705363.36},{"c":"mar/2026","v":606914.66},{"c":"abr/2026","v":285701.75}];
+const FAIXAS_A=[{"l": "R$ 0-1K", "n": 6801, "t": 1876150.64}, {"l": "R$ 1K-5K", "n": 2817, "t": 4663398.41}, {"l": "R$ 5K-10K", "n": 121, "t": 854411.21}, {"l": "R$ 10K-20K", "n": 64, "t": 885615.86}, {"l": "R$ 20K+", "n": 19, "t": 475815.44}];
+const FAIXAS_D=[{"l": "R$ 0-1K", "n": 12489, "t": 3212493.31}, {"l": "R$ 1K-5K", "n": 1372, "t": 2280766.51}, {"l": "R$ 5K-10K", "n": 39, "t": 266081.78}, {"l": "R$ 10K-20K", "n": 12, "t": 149628.64}, {"l": "R$ 20K+", "n": 1, "t": 27720.0}];
+const PIVOT=[{"tomador":"360 IMPRIMIR COMPOSICAO DE PROJETOS GRAFICOS LTDA","comp":"13o/2024","valor":1987.38,"quitacao":null},{"tomador":"BANCO DO ESTADO DO RIO GRANDE DO SUL SA","comp":"13o/2024","valor":2761.7,"quitacao":null},{"tomador":"YOUTILITY CENTER DO BRASIL SERVICOS DE INFORMATICA E TELEMARKETING LTDA","comp":"13o/2024","valor":19438.72,"quitacao":null},{"tomador":"BANCO ITAUCARD S.A.","comp":"13o/2024","valor":34236.06,"quitacao":null},{"tomador":"CONTAX S.A. - EM RECUPERACAO JUDICIAL","comp":"13o/2024","valor":59029.86,"quitacao":null},{"tomador":"ELFE OPERACAO E MANUTENCAO S.A. - EM RECUPERACAO JUDICIAL","comp":"13o/2024","valor":2844.22,"quitacao":null},{"tomador":"PETROLEO BRASILEIRO S A PETROBRAS","comp":"13o/2024","valor":7090.29,"quitacao":null},{"tomador":"FLUMINENSE FOOTBALL CLUB","comp":"13o/2024","valor":797.33,"quitacao":null},{"tomador":"JUNTOS SOMOS MAIS FIDELIZACAO S.A.","comp":"13o/2024","valor":152.0,"quitacao":null},{"tomador":"OI S.A. - EM RECUPERACAO JUDICIAL","comp":"13o/2024","valor":47708.66,"quitacao":null},{"tomador":"TICKET SERVICOS SA","comp":"13o/2024","valor":6034.2,"quitacao":null},{"tomador":"360 IMPRIMIR COMPOSICAO DE PROJETOS GRAFICOS LTDA","comp":"13o/2025","valor":665.54,"quitacao":null},{"tomador":"COMPANHIA ENERGETICA DO CEARA","comp":"13o/2025","valor":12986.1,"quitacao":null},{"tomador":"ELETROPAULO METROPOLITANA ELETRICIDADE DE SAO PAULO S.A.","comp":"13o/2025","valor":23504.03,"quitacao":null},{"tomador":"AMPLA ENERGIA E SERVICOS S.A.","comp":"13o/2025","valor":5962.17,"quitacao":null},{"tomador":"YOUTILITY CENTER DO BRASIL SERVICOS DE INFORMATICA E TELEMARKETING LTDA","comp":"13o/2025","valor":9820.98,"quitacao":null},{"tomador":"CONTAX S.A. - EM RECUPERACAO JUDICIAL","comp":"13o/2025","valor":71750.03,"quitacao":null},{"tomador":"ELFE OPERACAO E MANUTENCAO S.A. - EM RECUPERACAO JUDICIAL","comp":"13o/2025","valor":1751.03,"quitacao":null},{"tomador":"ENEL X BRASIL S.A.","comp":"13o/2025","valor":211.14,"quitacao":null},{"tomador":"MILETO SERVIÇOS POR ASSINATURA DE TELEVISÃO S.A","comp":"13o/2025","valor":1380.09,"quitacao":null},{"tomador":"MUNICIPIO DE BELO HORIZONTE","comp":"13o/2025","valor":3835.87,"quitacao":null},{"tomador":"OI S.A. - EM RECUPERACAO JUDICIAL","comp":"13o/2025","valor":551.99,"quitacao":null},{"tomador":"TICKET SERVICOS SA","comp":"13o/2025","valor":4988.09,"quitacao":null},{"tomador":"TIM S A","comp":"13o/2025","valor":132302.09,"quitacao":null},{"tomador":"OI S.A. - EM RECUPERACAO JUDICIAL","comp":"abr/2024","valor":121919.86,"quitacao":null},{"tomador":"360 IMPRIMIR COMPOSICAO DE PROJETOS GRAFICOS LTDA","comp":"abr/2025","valor":2733.52,"quitacao":null},{"tomador":"COMPANHIA ENERGETICA DO CEARA","comp":"abr/2025","valor":59101.36,"quitacao":null},{"tomador":"ELETROPAULO METROPOLITANA ELETRICIDADE DE SAO PAULO S.A.","comp":"abr/2025","valor":69285.33,"quitacao":null},{"tomador":"YOUTILITY CENTER DO BRASIL SERVICOS DE INFORMATICA E TELEMARKETING LTDA","comp":"abr/2025","valor":37819.4,"quitacao":null},{"tomador":"AMPLA ENERGIA E SERVICOS S.A.","comp":"abr/2025","valor":17748.66,"quitacao":null},{"tomador":"BANCO ITAUCARD S.A.","comp":"abr/2025","valor":76401.0,"quitacao":null},{"tomador":"CAIXA ECONOMICA FEDERAL","comp":"abr/2025","valor":379.52,"quitacao":null},{"tomador":"CONTAX S.A. - EM RECUPERACAO JUDICIAL","comp":"abr/2025","valor":173419.45,"quitacao":null},{"tomador":"TIM S A","comp":"abr/2025","valor":259379.89,"quitacao":null},{"tomador":"ELFE OPERACAO E MANUTENCAO S.A. - EM RECUPERACAO JUDICIAL","comp":"abr/2025","valor":5963.88,"quitacao":null},{"tomador":"FLUMINENSE FOOTBALL CLUB","comp":"abr/2025","valor":996.14,"quitacao":null},{"tomador":"JUNTOS SOMOS MAIS FIDELIZACAO S.A.","comp":"abr/2025","valor":1410.64,"quitacao":null},{"tomador":"MUNICIPIO DE BELO HORIZONTE","comp":"abr/2025","valor":8620.38,"quitacao":null},{"tomador":"OI S.A. - EM RECUPERACAO JUDICIAL","comp":"abr/2025","valor":106000.6,"quitacao":null},{"tomador":"TELEMAR NORTE LESTE S/A - EM RECUPERACAO JUDICIAL","comp":"abr/2025","valor":256.0,"quitacao":null},{"tomador":"TICKET SERVICOS SA","comp":"abr/2025","valor":11959.45,"quitacao":null},{"tomador":"TIM S A","comp":"abr/2026","valor":463499.67,"quitacao":"2026-05-20"},{"tomador":"BANCO DO ESTADO DO RIO GRANDE DO SUL SA","comp":"abr/2026","valor":33724.07,"quitacao":"2026-05-20"},{"tomador":"CAIXA ECONOMICA FEDERAL","comp":"abr/2026","valor":420999.15,"quitacao":"2026-05-20"},{"tomador":"CONTAX S.A. - EM RECUPERACAO JUDICIAL","comp":"abr/2026","valor":130812.31,"quitacao":"2026-05-20"},{"tomador":"COMPANHIA DE SANEAMENTO DE MINAS GERAIS COPASA MG","comp":"abr/2026","valor":59035.71,"quitacao":"2026-05-20"},{"tomador":"AGENCIA NACIONAL DE SAUDE SUPLEMENTAR","comp":"abr/2026","valor":7607.88,"quitacao":"2026-05-20"},{"tomador":"EMPRESA BRASILEIRA DE CORREIOS E TELEGRAFOS","comp":"abr/2026","valor":15617.41,"quitacao":"2026-05-20"},{"tomador":"BANCO ITAUCARD S.A.","comp":"abr/2026","valor":73402.88,"quitacao":"2026-05-20"},{"tomador":"MUNICIPIO DE BELO HORIZONTE","comp":"abr/2026","valor":9408.15,"quitacao":null},{"tomador":"TICKET SERVICOS SA","comp":"abr/2026","valor":15818.08,"quitacao":null},{"tomador":"360 IMPRIMIR COMPOSICAO DE PROJETOS GRAFICOS LTDA","comp":"abr/2026","valor":1341.93,"quitacao":"2026-05-20"},{"tomador":"ELETRONUCLEAR S.A.","comp":"abr/2026","valor":45648.48,"quitacao":"2026-05-20"},{"tomador":"ELFE OPERACAO E MANUTENCAO S.A. - EM RECUPERACAO JUDICIAL","comp":"abr/2026","valor":5540.93,"quitacao":null},{"tomador":"PETROBRAS TRANSPORTE S.A. - TRANSPETRO","comp":"abr/2026","valor":34671.05,"quitacao":"2026-05-20"},{"tomador":"COMPANHIA ENERGETICA DO CEARA","comp":"abr/2026","valor":39419.62,"quitacao":"2026-05-20"},{"tomador":"ELETROPAULO METROPOLITANA ELETRICIDADE DE SAO PAULO S.A.","comp":"abr/2026","valor":71885.19,"quitacao":"2026-05-20"},{"tomador":"AMPLA ENERGIA E SERVICOS S.A.","comp":"abr/2026","valor":12003.33,"quitacao":null},{"tomador":"YOUTILITY CENTER DO BRASIL SERVICOS DE INFORMATICA E TELEMARKETING LTDA","comp":"abr/2026","valor":2859.2,"quitacao":null},{"tomador":"ENEL X BRASIL S.A.","comp":"abr/2026","valor":227.28,"quitacao":null},{"tomador":"360 IMPRIMIR COMPOSICAO DE PROJETOS GRAFICOS LTDA","comp":"ago/2024","valor":5230.87,"quitacao":null},{"tomador":"YOUTILITY CENTER DO BRASIL SERVICOS DE INFORMATICA E TELEMARKETING LTDA","comp":"ago/2024","valor":34855.39,"quitacao":null},{"tomador":"CONTAX S.A. - EM RECUPERACAO JUDICIAL","comp":"ago/2024","valor":128426.95,"quitacao":null},{"tomador":"JUNTOS SOMOS MAIS FIDELIZACAO S.A.","comp":"ago/2024","valor":2551.66,"quitacao":null},{"tomador":"OI S.A. - EM RECUPERACAO JUDICIAL","comp":"ago/2024","valor":140671.23,"quitacao":null},{"tomador":"TICKET SERVICOS SA","comp":"ago/2024","valor":17253.83,"quitacao":null},{"tomador":"360 IMPRIMIR COMPOSICAO DE PROJETOS GRAFICOS LTDA","comp":"ago/2025","valor":2315.49,"quitacao":null},{"tomador":"YOUTILITY CENTER DO BRASIL SERVICOS DE INFORMATICA E TELEMARKETING LTDA","comp":"ago/2025","valor":32388.2,"quitacao":null},{"tomador":"AMPLA ENERGIA E SERVICOS S.A.","comp":"ago/2025","valor":222.63,"quitacao":null},{"tomador":"BANCO ITAUCARD S.A.","comp":"ago/2025","valor":115.68,"quitacao":null},{"tomador":"CONTAX S.A. - EM RECUPERACAO JUDICIAL","comp":"ago/2025","valor":146493.63,"quitacao":null},{"tomador":"ELETROPAULO METROPOLITANA ELETRICIDADE DE SAO PAULO S.A.","comp":"ago/2025","valor":121.59,"quitacao":null},{"tomador":"ELFE OPERACAO E MANUTENCAO S.A. - EM RECUPERACAO JUDICIAL","comp":"ago/2025","valor":7013.14,"quitacao":null},{"tomador":"ENEL X BRASIL S.A.","comp":"ago/2025","valor":222.17,"quitacao":null},{"tomador":"FLUMINENSE FOOTBALL CLUB","comp":"ago/2025","valor":1152.76,"quitacao":null},{"tomador":"JUNTOS SOMOS MAIS FIDELIZACAO S.A.","comp":"ago/2025","valor":1669.32,"quitacao":null},{"tomador":"MILETO SERVIÇOS POR ASSINATURA DE TELEVISÃO S.A","comp":"ago/2025","valor":15143.52,"quitacao":null},{"tomador":"MUNICIPIO DE BELO HORIZONTE","comp":"ago/2025","valor":8952.16,"quitacao":null},{"tomador":"OI S.A. - EM RECUPERACAO JUDICIAL","comp":"ago/2025","valor":9966.16,"quitacao":null},{"tomador":"TICKET SERVICOS SA","comp":"ago/2025","valor":13964.94,"quitacao":null},{"tomador":"TIM S A","comp":"ago/2025","valor":210.03,"quitacao":null},{"tomador":"360 IMPRIMIR COMPOSICAO DE PROJETOS GRAFICOS LTDA","comp":"dez/2024","valor":4993.04,"quitacao":null},{"tomador":"YOUTILITY CENTER DO BRASIL SERVICOS DE INFORMATICA E TELEMARKETING LTDA","comp":"dez/2024","valor":38201.18,"quitacao":null},{"tomador":"BANCO ITAUCARD S.A.","comp":"dez/2024","valor":89275.79,"quitacao":null},{"tomador":"CONTAX S.A. - EM RECUPERACAO JUDICIAL","comp":"dez/2024","valor":131016.55,"quitacao":null},{"tomador":"ELFE OPERACAO E MANUTENCAO S.A. - EM RECUPERACAO JUDICIAL","comp":"dez/2024","valor":6998.29,"quitacao":null},{"tomador":"PETROLEO BRASILEIRO S A PETROBRAS","comp":"dez/2024","valor":14753.37,"quitacao":null},{"tomador":"FLUMINENSE FOOTBALL CLUB","comp":"dez/2024","valor":2421.48,"quitacao":null},{"tomador":"OI S.A. - EM RECUPERACAO JUDICIAL","comp":"dez/2024","valor":123795.83,"quitacao":null},{"tomador":"JUNTOS SOMOS MAIS FIDELIZACAO S.A.","comp":"dez/2024","valor":3692.08,"quitacao":null},{"tomador":"TICKET SERVICOS SA","comp":"dez/2024","valor":15420.77,"quitacao":null},{"tomador":"360 IMPRIMIR COMPOSICAO DE PROJETOS GRAFICOS LTDA","comp":"dez/2025","valor":1724.15,"quitacao":null},{"tomador":"AGENCIA NACIONAL DE SAUDE SUPLEMENTAR","comp":"dez/2025","valor":8160.33,"quitacao":null},{"tomador":"ELETROPAULO METROPOLITANA ELETRICIDADE DE SAO PAULO S.A.","comp":"dez/2025","valor":69353.68,"quitacao":null},{"tomador":"AMPLA ENERGIA E SERVICOS S.A.","comp":"dez/2025","valor":15750.82,"quitacao":null},{"tomador":"COMPANHIA ENERGETICA DO CEARA","comp":"dez/2025","valor":33178.52,"quitacao":null},{"tomador":"BANCO DO ESTADO DO RIO GRANDE DO SUL SA","comp":"dez/2025","valor":32886.78,"quitacao":null},{"tomador":"YOUTILITY CENTER DO BRASIL SERVICOS DE INFORMATICA E TELEMARKETING LTDA","comp":"dez/2025","valor":17511.98,"quitacao":null},{"tomador":"BANCO ITAUCARD S.A.","comp":"dez/2025","valor":77644.92,"quitacao":null},{"tomador":"CONTAX S.A. - EM RECUPERACAO JUDICIAL","comp":"dez/2025","valor":157264.5,"quitacao":null},{"tomador":"ELFE OPERACAO E MANUTENCAO S.A. - EM RECUPERACAO JUDICIAL","comp":"dez/2025","valor":7584.64,"quitacao":null},{"tomador":"EMPRESA BRASILEIRA DE CORREIOS E TELEGRAFOS","comp":"dez/2025","valor":10787.4,"quitacao":null},{"tomador":"ENEL X BRASIL S.A.","comp":"dez/2025","valor":648.6,"quitacao":null},{"tomador":"MILETO SERVIÇOS POR ASSINATURA DE TELEVISÃO S.A","comp":"dez/2025","valor":154.79,"quitacao":null},{"tomador":"MUNICIPIO DE BELO HORIZONTE","comp":"dez/2025","valor":9417.12,"quitacao":null},{"tomador":"OI S.A. - EM RECUPERACAO JUDICIAL","comp":"dez/2025","valor":399.28,"quitacao":null},{"tomador":"TICKET SERVICOS SA","comp":"dez/2025","valor":15109.99,"quitacao":null},{"tomador":"TIM S A","comp":"dez/2025","valor":329122.59,"quitacao":null},{"tomador":"360 IMPRIMIR COMPOSICAO DE PROJETOS GRAFICOS LTDA","comp":"fev/2025","valor":3129.41,"quitacao":null},{"tomador":"YOUTILITY CENTER DO BRASIL SERVICOS DE INFORMATICA E TELEMARKETING LTDA","comp":"fev/2025","valor":68207.56,"quitacao":null},{"tomador":"AMPLA ENERGIA E SERVICOS S.A.","comp":"fev/2025","valor":28757.91,"quitacao":null},{"tomador":"COMPANHIA ENERGETICA DO CEARA","comp":"fev/2025","valor":35558.46,"quitacao":null},{"tomador":"ELETROPAULO METROPOLITANA ELETRICIDADE DE SAO PAULO S.A.","comp":"fev/2025","valor":54972.63,"quitacao":null},{"tomador":"BANCO ITAUCARD S.A.","comp":"fev/2025","valor":83615.3,"quitacao":null},{"tomador":"CONTAX S.A. - EM RECUPERACAO JUDICIAL","comp":"fev/2025","valor":139697.31,"quitacao":null},{"tomador":"COMPANHIA DE SANEAMENTO DE MINAS GERAIS COPASA MG","comp":"fev/2025","valor":50869.69,"quitacao":null},{"tomador":"ELFE OPERACAO E MANUTENCAO S.A. - EM RECUPERACAO JUDICIAL","comp":"fev/2025","valor":5487.4,"quitacao":null},{"tomador":"PETROLEO BRASILEIRO S A PETROBRAS","comp":"fev/2025","valor":1710.1,"quitacao":null},{"tomador":"FLUMINENSE FOOTBALL CLUB","comp":"fev/2025","valor":1132.69,"quitacao":null},{"tomador":"MUNICIPIO DE BELO HORIZONTE","comp":"fev/2025","valor":9281.72,"quitacao":null},{"tomador":"OI S.A. - EM RECUPERACAO JUDICIAL","comp":"fev/2025","valor":118494.66,"quitacao":null},{"tomador":"JUNTOS SOMOS MAIS FIDELIZACAO S.A.","comp":"fev/2025","valor":3692.08,"quitacao":null},{"tomador":"TICKET SERVICOS SA","comp":"fev/2025","valor":13413.21,"quitacao":null},{"tomador":"AGENCIA NACIONAL DE SAUDE SUPLEMENTAR","comp":"fev/2026","valor":8581.78,"quitacao":null},{"tomador":"BANCO DO ESTADO DO RIO GRANDE DO SUL SA","comp":"fev/2026","valor":95.22,"quitacao":null},{"tomador":"ELETROPAULO METROPOLITANA ELETRICIDADE DE SAO PAULO S.A.","comp":"fev/2026","valor":72579.08,"quitacao":null},{"tomador":"YOUTILITY CENTER DO BRASIL SERVICOS DE INFORMATICA E TELEMARKETING LTDA","comp":"fev/2026","valor":2762.33,"quitacao":null},{"tomador":"AMPLA ENERGIA E SERVICOS S.A.","comp":"fev/2026","valor":12493.78,"quitacao":null},{"tomador":"COMPANHIA ENERGETICA DO CEARA","comp":"fev/2026","valor":38987.03,"quitacao":null},{"tomador":"BANCO ITAUCARD S.A.","comp":"fev/2026","valor":76774.62,"quitacao":null},{"tomador":"CAIXA ECONOMICA FEDERAL","comp":"fev/2026","valor":119.08,"quitacao":null},{"tomador":"CONTAX S.A. - EM RECUPERACAO JUDICIAL","comp":"fev/2026","valor":154650.83,"quitacao":null},{"tomador":"ELFE OPERACAO E MANUTENCAO S.A. - EM RECUPERACAO JUDICIAL","comp":"fev/2026","valor":5364.65,"quitacao":null},{"tomador":"ENEL X BRASIL S.A.","comp":"fev/2026","valor":212.12,"quitacao":null},{"tomador":"MUNICIPIO DE BELO HORIZONTE","comp":"fev/2026","valor":9114.08,"quitacao":null},{"tomador":"TIM S A","comp":"fev/2026","valor":323628.76,"quitacao":null},{"tomador":"360 IMPRIMIR COMPOSICAO DE PROJETOS GRAFICOS LTDA","comp":"jan/2025","valor":3636.22,"quitacao":null},{"tomador":"YOUTILITY CENTER DO BRASIL SERVICOS DE INFORMATICA E TELEMARKETING LTDA","comp":"jan/2025","valor":35646.65,"quitacao":null},{"tomador":"AMPLA ENERGIA E SERVICOS S.A.","comp":"jan/2025","valor":29868.14,"quitacao":null},{"tomador":"COMPANHIA ENERGETICA DO CEARA","comp":"jan/2025","valor":37458.85,"quitacao":null},{"tomador":"ELETROPAULO METROPOLITANA ELETRICIDADE DE SAO PAULO S.A.","comp":"jan/2025","valor":57497.85,"quitacao":null},{"tomador":"BANCO ITAUCARD S.A.","comp":"jan/2025","valor":86455.83,"quitacao":null},{"tomador":"CONTAX S.A. - EM RECUPERACAO JUDICIAL","comp":"jan/2025","valor":134699.28,"quitacao":null},{"tomador":"COMPANHIA DE SANEAMENTO DE MINAS GERAIS COPASA MG","comp":"jan/2025","valor":51710.21,"quitacao":null},{"tomador":"ELFE OPERACAO E MANUTENCAO S.A. - EM RECUPERACAO JUDICIAL","comp":"jan/2025","valor":6127.84,"quitacao":null},{"tomador":"PETROLEO BRASILEIRO S A PETROBRAS","comp":"jan/2025","valor":1810.43,"quitacao":null},{"tomador":"FLUMINENSE FOOTBALL CLUB","comp":"jan/2025","valor":1961.03,"quitacao":null},{"tomador":"OI S.A. - EM RECUPERACAO JUDICIAL","comp":"jan/2025","valor":115620.62,"quitacao":null},{"tomador":"JUNTOS SOMOS MAIS FIDELIZACAO S.A.","comp":"jan/2025","valor":3692.08,"quitacao":null},{"tomador":"TICKET SERVICOS SA","comp":"jan/2025","valor":14981.3,"quitacao":null},{"tomador":"360 IMPRIMIR COMPOSICAO DE PROJETOS GRAFICOS LTDA","comp":"jan/2026","valor":1502.59,"quitacao":null},{"tomador":"AGENCIA NACIONAL DE SAUDE SUPLEMENTAR","comp":"jan/2026","valor":9016.01,"quitacao":null},{"tomador":"BANCO DO ESTADO DO RIO GRANDE DO SUL SA","comp":"jan/2026","valor":29690.84,"quitacao":null},{"tomador":"ELETROPAULO METROPOLITANA ELETRICIDADE DE SAO PAULO S.A.","comp":"jan/2026","valor":81015.87,"quitacao":null},{"tomador":"YOUTILITY CENTER DO BRASIL SERVICOS DE INFORMATICA E TELEMARKETING LTDA","comp":"jan/2026","valor":3724.36,"quitacao":null},{"tomador":"AMPLA ENERGIA E SERVICOS S.A.","comp":"jan/2026","valor":15476.69,"quitacao":null},{"tomador":"COMPANHIA ENERGETICA DO CEARA","comp":"jan/2026","valor":37702.44,"quitacao":null},{"tomador":"BANCO ITAUCARD S.A.","comp":"jan/2026","valor":77198.37,"quitacao":null},{"tomador":"CONTAX S.A. - EM RECUPERACAO JUDICIAL","comp":"jan/2026","valor":155619.68,"quitacao":null},{"tomador":"ELFE OPERACAO E MANUTENCAO S.A. - EM RECUPERACAO JUDICIAL","comp":"jan/2026","valor":5771.15,"quitacao":null},{"tomador":"EMPRESA BRASILEIRA DE CORREIOS E TELEGRAFOS","comp":"jan/2026","valor":10975.44,"quitacao":null},{"tomador":"ENEL X BRASIL S.A.","comp":"jan/2026","valor":227.28,"quitacao":null},{"tomador":"MUNICIPIO DE BELO HORIZONTE","comp":"jan/2026","valor":9554.09,"quitacao":null},{"tomador":"OI S.A. - EM RECUPERACAO JUDICIAL","comp":"jan/2026","valor":157.87,"quitacao":null},{"tomador":"TICKET SERVICOS SA","comp":"jan/2026","valor":13686.23,"quitacao":null},{"tomador":"TIM S A","comp":"jan/2026","valor":317718.16,"quitacao":null},{"tomador":"360 IMPRIMIR COMPOSICAO DE PROJETOS GRAFICOS LTDA","comp":"jul/2024","valor":4434.47,"quitacao":null},{"tomador":"CONTAX S.A. - EM RECUPERACAO JUDICIAL","comp":"jul/2024","valor":133618.88,"quitacao":null},{"tomador":"CREFISA SA CREDITO FINANCIAMENTO E INVESTIMENTOS","comp":"jul/2024","valor":2000.0,"quitacao":null},{"tomador":"FLUMINENSE FOOTBALL CLUB","comp":"jul/2024","valor":2344.2,"quitacao":null},{"tomador":"OI S.A. - EM RECUPERACAO JUDICIAL","comp":"jul/2024","valor":137973.28,"quitacao":null},{"tomador":"TICKET SERVICOS SA","comp":"jul/2024","valor":15158.6,"quitacao":null},{"tomador":"360 IMPRIMIR COMPOSICAO DE PROJETOS GRAFICOS LTDA","comp":"jul/2025","valor":2021.79,"quitacao":null},{"tomador":"ELETROPAULO METROPOLITANA ELETRICIDADE DE SAO PAULO S.A.","comp":"jul/2025","valor":76094.57,"quitacao":null},{"tomador":"AMPLA ENERGIA E SERVICOS S.A.","comp":"jul/2025","valor":19886.92,"quitacao":null},{"tomador":"COMPANHIA ENERGETICA DO CEARA","comp":"jul/2025","valor":44208.78,"quitacao":null},{"tomador":"YOUTILITY CENTER DO BRASIL SERVICOS DE INFORMATICA E TELEMARKETING LTDA","comp":"jul/2025","valor":23573.44,"quitacao":null},{"tomador":"MILETO SERVIÇOS POR ASSINATURA DE TELEVISÃO S.A","comp":"jul/2025","valor":30321.57,"quitacao":null},{"tomador":"BANCO DO ESTADO DO RIO GRANDE DO SUL SA","comp":"jul/2025","valor":68.66,"quitacao":null},{"tomador":"CONTAX S.A. - EM RECUPERACAO JUDICIAL","comp":"jul/2025","valor":127778.1,"quitacao":null},{"tomador":"TIM S A","comp":"jul/2025","valor":576606.18,"quitacao":null},{"tomador":"ELFE OPERACAO E MANUTENCAO S.A. - EM RECUPERACAO JUDICIAL","comp":"jul/2025","valor":9660.56,"quitacao":null},{"tomador":"ENEL X BRASIL S.A.","comp":"jul/2025","valor":13410.86,"quitacao":null},{"tomador":"FLUMINENSE FOOTBALL CLUB","comp":"jul/2025","valor":1213.46,"quitacao":null},{"tomador":"JUNTOS SOMOS MAIS FIDELIZACAO S.A.","comp":"jul/2025","valor":1861.31,"quitacao":null},{"tomador":"MUNICIPIO DE BELO HORIZONTE","comp":"jul/2025","valor":8955.23,"quitacao":null},{"tomador":"EMPRESA BRASILEIRA DE CORREIOS E TELEGRAFOS","comp":"jul/2025","valor":1400.0,"quitacao":null},{"tomador":"OI S.A. - EM RECUPERACAO JUDICIAL","comp":"jul/2025","valor":17125.27,"quitacao":null},{"tomador":"TICKET SERVICOS SA","comp":"jul/2025","valor":12868.97,"quitacao":null},{"tomador":"CONTAX S.A. - EM RECUPERACAO JUDICIAL","comp":"jun/2024","valor":132645.3,"quitacao":null},{"tomador":"OI S.A. - EM RECUPERACAO JUDICIAL","comp":"jun/2024","valor":130144.66,"quitacao":null},{"tomador":"TICKET SERVICOS SA","comp":"jun/2024","valor":16055.4,"quitacao":null},{"tomador":"360 IMPRIMIR COMPOSICAO DE PROJETOS GRAFICOS LTDA","comp":"jun/2025","valor":1894.98,"quitacao":null},{"tomador":"ELETROPAULO METROPOLITANA ELETRICIDADE DE SAO PAULO S.A.","comp":"jun/2025","valor":75512.62,"quitacao":null},{"tomador":"AMPLA ENERGIA E SERVICOS S.A.","comp":"jun/2025","valor":21733.43,"quitacao":null},{"tomador":"BANCO DO ESTADO DO RIO GRANDE DO SUL SA","comp":"jun/2025","valor":24018.02,"quitacao":null},{"tomador":"YOUTILITY CENTER DO BRASIL SERVICOS DE INFORMATICA E TELEMARKETING LTDA","comp":"jun/2025","valor":27123.87,"quitacao":null},{"tomador":"COMPANHIA ENERGETICA DO CEARA","comp":"jun/2025","valor":38616.66,"quitacao":null},{"tomador":"MILETO SERVIÇOS POR ASSINATURA DE TELEVISÃO S.A","comp":"jun/2025","valor":30203.46,"quitacao":null},{"tomador":"BANCO ITAUCARD S.A.","comp":"jun/2025","valor":93982.89,"quitacao":null},{"tomador":"CONTAX S.A. - EM RECUPERACAO JUDICIAL","comp":"jun/2025","valor":125144.27,"quitacao":null},{"tomador":"TIM S A","comp":"jun/2025","valor":87409.78,"quitacao":null},{"tomador":"ELFE OPERACAO E MANUTENCAO S.A. - EM RECUPERACAO JUDICIAL","comp":"jun/2025","valor":5983.19,"quitacao":null},{"tomador":"FLUMINENSE FOOTBALL CLUB","comp":"jun/2025","valor":1191.37,"quitacao":null},{"tomador":"JUNTOS SOMOS MAIS FIDELIZACAO S.A.","comp":"jun/2025","valor":1642.66,"quitacao":null},{"tomador":"MUNICIPIO DE BELO HORIZONTE","comp":"jun/2025","valor":8686.8,"quitacao":null},{"tomador":"OI S.A. - EM RECUPERACAO JUDICIAL","comp":"jun/2025","valor":36338.62,"quitacao":null},{"tomador":"QV BENEFICIOS EM SAUDE LTDA","comp":"jun/2025","valor":2119.26,"quitacao":null},{"tomador":"TICKET SERVICOS SA","comp":"jun/2025","valor":13380.96,"quitacao":null},{"tomador":"CONTAX S.A. - EM RECUPERACAO JUDICIAL","comp":"mai/2024","valor":130989.08,"quitacao":null},{"tomador":"OI S.A. - EM RECUPERACAO JUDICIAL","comp":"mai/2024","valor":117373.21,"quitacao":null},{"tomador":"TICKET SERVICOS SA","comp":"mai/2024","valor":15942.29,"quitacao":null},{"tomador":"360 IMPRIMIR COMPOSICAO DE PROJETOS GRAFICOS LTDA","comp":"mai/2025","valor":2745.98,"quitacao":null},{"tomador":"COMPANHIA ENERGETICA DO CEARA","comp":"mai/2025","valor":52670.12,"quitacao":null},{"tomador":"ELETROPAULO METROPOLITANA ELETRICIDADE DE SAO PAULO S.A.","comp":"mai/2025","valor":87754.29,"quitacao":null},{"tomador":"AMPLA ENERGIA E SERVICOS S.A.","comp":"mai/2025","valor":25050.42,"quitacao":null},{"tomador":"YOUTILITY CENTER DO BRASIL SERVICOS DE INFORMATICA E TELEMARKETING LTDA","comp":"mai/2025","valor":31286.28,"quitacao":null},{"tomador":"CAIXA ECONOMICA FEDERAL","comp":"mai/2025","valor":178.1,"quitacao":null},{"tomador":"CONTAX S.A. - EM RECUPERACAO JUDICIAL","comp":"mai/2025","valor":130050.71,"quitacao":null},{"tomador":"TIM S A","comp":"mai/2025","valor":103303.53,"quitacao":null},{"tomador":"ELFE OPERACAO E MANUTENCAO S.A. - EM RECUPERACAO JUDICIAL","comp":"mai/2025","valor":5978.97,"quitacao":null},{"tomador":"ENEL X BRASIL S.A.","comp":"mai/2025","valor":13634.41,"quitacao":null},{"tomador":"FLUMINENSE FOOTBALL CLUB","comp":"mai/2025","valor":1061.39,"quitacao":null},{"tomador":"JUNTOS SOMOS MAIS FIDELIZACAO S.A.","comp":"mai/2025","valor":1511.3,"quitacao":null},{"tomador":"MILETO SERVIÇOS POR ASSINATURA DE TELEVISÃO S.A","comp":"mai/2025","valor":22458.14,"quitacao":null},{"tomador":"MUNICIPIO DE BELO HORIZONTE","comp":"mai/2025","valor":9281.41,"quitacao":null},{"tomador":"OI S.A. - EM RECUPERACAO JUDICIAL","comp":"mai/2025","valor":56440.24,"quitacao":null},{"tomador":"TICKET SERVICOS SA","comp":"mai/2025","valor":15158.94,"quitacao":null},{"tomador":"360 IMPRIMIR COMPOSICAO DE PROJETOS GRAFICOS LTDA","comp":"mar/2025","valor":2756.7,"quitacao":null},{"tomador":"BANCO DO ESTADO DO RIO GRANDE DO SUL SA","comp":"mar/2025","valor":25861.82,"quitacao":null},{"tomador":"YOUTILITY CENTER DO BRASIL SERVICOS DE INFORMATICA E TELEMARKETING LTDA","comp":"mar/2025","valor":94193.77,"quitacao":null},{"tomador":"AMPLA ENERGIA E SERVICOS S.A.","comp":"mar/2025","valor":31905.73,"quitacao":null},{"tomador":"COMPANHIA ENERGETICA DO CEARA","comp":"mar/2025","valor":36060.06,"quitacao":null},{"tomador":"ELETROPAULO METROPOLITANA ELETRICIDADE DE SAO PAULO S.A.","comp":"mar/2025","valor":61010.24,"quitacao":null},{"tomador":"BANCO ITAUCARD S.A.","comp":"mar/2025","valor":85657.88,"quitacao":null},{"tomador":"CONTAX S.A. - EM RECUPERACAO JUDICIAL","comp":"mar/2025","valor":133680.85,"quitacao":null},{"tomador":"COMPANHIA DE SANEAMENTO DE MINAS GERAIS COPASA MG","comp":"mar/2025","valor":49951.39,"quitacao":null},{"tomador":"ELFE OPERACAO E MANUTENCAO S.A. - EM RECUPERACAO JUDICIAL","comp":"mar/2025","valor":4860.66,"quitacao":null},{"tomador":"PETROLEO BRASILEIRO S A PETROBRAS","comp":"mar/2025","valor":1569.51,"quitacao":null},{"tomador":"FLUMINENSE FOOTBALL CLUB","comp":"mar/2025","valor":1181.88,"quitacao":null},{"tomador":"MUNICIPIO DE BELO HORIZONTE","comp":"mar/2025","valor":8981.55,"quitacao":null},{"tomador":"OI S.A. - EM RECUPERACAO JUDICIAL","comp":"mar/2025","valor":123157.76,"quitacao":null},{"tomador":"JUNTOS SOMOS MAIS FIDELIZACAO S.A.","comp":"mar/2025","valor":3692.08,"quitacao":null},{"tomador":"TELEMAR NORTE LESTE S/A - EM RECUPERACAO JUDICIAL","comp":"mar/2025","valor":256.0,"quitacao":null},{"tomador":"TICKET SERVICOS SA","comp":"mar/2025","valor":14454.15,"quitacao":null},{"tomador":"TIM S A","comp":"mar/2025","valor":81918.09,"quitacao":null},{"tomador":"AGENCIA NACIONAL DE SAUDE SUPLEMENTAR","comp":"mar/2026","valor":8086.5,"quitacao":null},{"tomador":"ELETROPAULO METROPOLITANA ELETRICIDADE DE SAO PAULO S.A.","comp":"mar/2026","valor":72492.84,"quitacao":null},{"tomador":"YOUTILITY CENTER DO BRASIL SERVICOS DE INFORMATICA E TELEMARKETING LTDA","comp":"mar/2026","valor":2668.47,"quitacao":null},{"tomador":"AMPLA ENERGIA E SERVICOS S.A.","comp":"mar/2026","valor":11853.99,"quitacao":null},{"tomador":"COMPANHIA ENERGETICA DO CEARA","comp":"mar/2026","valor":40266.03,"quitacao":null},{"tomador":"BANCO ITAUCARD S.A.","comp":"mar/2026","valor":77823.82,"quitacao":"2026-05-12"},{"tomador":"CAIXA ECONOMICA FEDERAL","comp":"mar/2026","valor":1142.06,"quitacao":null},{"tomador":"CONTAX S.A. - EM RECUPERACAO JUDICIAL","comp":"mar/2026","valor":129373.18,"quitacao":null},{"tomador":"ELFE OPERACAO E MANUTENCAO S.A. - EM RECUPERACAO JUDICIAL","comp":"mar/2026","valor":5526.94,"quitacao":null},{"tomador":"EMPRESA BRASILEIRA DE CORREIOS E TELEGRAFOS","comp":"mar/2026","valor":17307.12,"quitacao":null},{"tomador":"ENEL X BRASIL S.A.","comp":"mar/2026","valor":242.43,"quitacao":null},{"tomador":"MUNICIPIO DE BELO HORIZONTE","comp":"mar/2026","valor":8970.06,"quitacao":null},{"tomador":"PETROBRAS TRANSPORTE S.A. - TRANSPETRO","comp":"mar/2026","valor":559.11,"quitacao":null},{"tomador":"TIM S A","comp":"mar/2026","valor":308425.93,"quitacao":null},{"tomador":"360 IMPRIMIR COMPOSICAO DE PROJETOS GRAFICOS LTDA","comp":"nov/2024","valor":6643.27,"quitacao":null},{"tomador":"YOUTILITY CENTER DO BRASIL SERVICOS DE INFORMATICA E TELEMARKETING LTDA","comp":"nov/2024","valor":64634.14,"quitacao":null},{"tomador":"BANCO ITAUCARD S.A.","comp":"nov/2024","valor":116229.14,"quitacao":null},{"tomador":"CONTAX S.A. - EM RECUPERACAO JUDICIAL","comp":"nov/2024","valor":185151.64,"quitacao":null},{"tomador":"ELFE OPERACAO E MANUTENCAO S.A. - EM RECUPERACAO JUDICIAL","comp":"nov/2024","valor":10543.92,"quitacao":null},{"tomador":"PETROLEO BRASILEIRO S A PETROBRAS","comp":"nov/2024","valor":11781.31,"quitacao":null},{"tomador":"FLUMINENSE FOOTBALL CLUB","comp":"nov/2024","valor":2701.71,"quitacao":null},{"tomador":"JUNTOS SOMOS MAIS FIDELIZACAO S.A.","comp":"nov/2024","valor":893.33,"quitacao":null},{"tomador":"OI S.A. - EM RECUPERACAO JUDICIAL","comp":"nov/2024","valor":183197.94,"quitacao":null},{"tomador":"TICKET SERVICOS SA","comp":"nov/2024","valor":22129.61,"quitacao":null},{"tomador":"360 IMPRIMIR COMPOSICAO DE PROJETOS GRAFICOS LTDA","comp":"nov/2025","valor":2018.49,"quitacao":null},{"tomador":"ELETROPAULO METROPOLITANA ELETRICIDADE DE SAO PAULO S.A.","comp":"nov/2025","valor":103442.67,"quitacao":null},{"tomador":"AMPLA ENERGIA E SERVICOS S.A.","comp":"nov/2025","valor":21389.18,"quitacao":null},{"tomador":"COMPANHIA ENERGETICA DO CEARA","comp":"nov/2025","valor":50528.04,"quitacao":null},{"tomador":"YOUTILITY CENTER DO BRASIL SERVICOS DE INFORMATICA E TELEMARKETING LTDA","comp":"nov/2025","valor":30246.88,"quitacao":null},{"tomador":"CONTAX S.A. - EM RECUPERACAO JUDICIAL","comp":"nov/2025","valor":221640.05,"quitacao":null},{"tomador":"COMPANHIA DE SANEAMENTO DE MINAS GERAIS COPASA MG","comp":"nov/2025","valor":1088.44,"quitacao":null},{"tomador":"ELFE OPERACAO E MANUTENCAO S.A. - EM RECUPERACAO JUDICIAL","comp":"nov/2025","valor":9142.0,"quitacao":null},{"tomador":"ENEL X BRASIL S.A.","comp":"nov/2025","valor":1920.57,"quitacao":null},{"tomador":"MILETO SERVIÇOS POR ASSINATURA DE TELEVISÃO S.A","comp":"nov/2025","valor":4538.51,"quitacao":null},{"tomador":"MUNICIPIO DE BELO HORIZONTE","comp":"nov/2025","valor":13381.28,"quitacao":null},{"tomador":"OI S.A. - EM RECUPERACAO JUDICIAL","comp":"nov/2025","valor":1733.19,"quitacao":null},{"tomador":"TICKET SERVICOS SA","comp":"nov/2025","valor":18074.58,"quitacao":null},{"tomador":"TIM S A","comp":"nov/2025","valor":471407.32,"quitacao":null},{"tomador":"360 IMPRIMIR COMPOSICAO DE PROJETOS GRAFICOS LTDA","comp":"out/2024","valor":4559.52,"quitacao":null},{"tomador":"BANCO DO ESTADO DO RIO GRANDE DO SUL SA","comp":"out/2024","valor":11939.78,"quitacao":null},{"tomador":"YOUTILITY CENTER DO BRASIL SERVICOS DE INFORMATICA E TELEMARKETING LTDA","comp":"out/2024","valor":38808.25,"quitacao":null},{"tomador":"CONTAX S.A. - EM RECUPERACAO JUDICIAL","comp":"out/2024","valor":124905.96,"quitacao":null},{"tomador":"ELFE OPERACAO E MANUTENCAO S.A. - EM RECUPERACAO JUDICIAL","comp":"out/2024","valor":8723.84,"quitacao":null},{"tomador":"PETROLEO BRASILEIRO S A PETROBRAS","comp":"out/2024","valor":8375.66,"quitacao":null},{"tomador":"FLUMINENSE FOOTBALL CLUB","comp":"out/2024","valor":2461.97,"quitacao":null},{"tomador":"JUNTOS SOMOS MAIS FIDELIZACAO S.A.","comp":"out/2024","valor":4809.57,"quitacao":null},{"tomador":"OI S.A. - EM RECUPERACAO JUDICIAL","comp":"out/2024","valor":137230.5,"quitacao":null},{"tomador":"TICKET SERVICOS SA","comp":"out/2024","valor":15339.99,"quitacao":null},{"tomador":"360 IMPRIMIR COMPOSICAO DE PROJETOS GRAFICOS LTDA","comp":"out/2025","valor":1386.37,"quitacao":null},{"tomador":"ELETROPAULO METROPOLITANA ELETRICIDADE DE SAO PAULO S.A.","comp":"out/2025","valor":102739.7,"quitacao":null},{"tomador":"AMPLA ENERGIA E SERVICOS S.A.","comp":"out/2025","valor":16294.2,"quitacao":null},{"tomador":"COMPANHIA ENERGETICA DO CEARA","comp":"out/2025","valor":44494.14,"quitacao":null},{"tomador":"MILETO SERVIÇOS POR ASSINATURA DE TELEVISÃO S.A","comp":"out/2025","valor":7360.19,"quitacao":null},{"tomador":"CONTAX S.A. - EM RECUPERACAO JUDICIAL","comp":"out/2025","valor":133819.08,"quitacao":null},{"tomador":"YOUTILITY CENTER DO BRASIL SERVICOS DE INFORMATICA E TELEMARKETING LTDA","comp":"out/2025","valor":820.14,"quitacao":null},{"tomador":"ELFE OPERACAO E MANUTENCAO S.A. - EM RECUPERACAO JUDICIAL","comp":"out/2025","valor":5414.2,"quitacao":null},{"tomador":"ENEL X BRASIL S.A.","comp":"out/2025","valor":11434.7,"quitacao":null},{"tomador":"MUNICIPIO DE BELO HORIZONTE","comp":"out/2025","valor":9646.78,"quitacao":null},{"tomador":"OI S.A. - EM RECUPERACAO JUDICIAL","comp":"out/2025","valor":4044.14,"quitacao":null},{"tomador":"TICKET SERVICOS SA","comp":"out/2025","valor":14293.85,"quitacao":null},{"tomador":"360 IMPRIMIR COMPOSICAO DE PROJETOS GRAFICOS LTDA","comp":"set/2024","valor":4549.73,"quitacao":null},{"tomador":"CONTAX S.A. - EM RECUPERACAO JUDICIAL","comp":"set/2024","valor":125874.17,"quitacao":null},{"tomador":"ELFE OPERACAO E MANUTENCAO S.A. - EM RECUPERACAO JUDICIAL","comp":"set/2024","valor":7730.28,"quitacao":null},{"tomador":"PETROLEO BRASILEIRO S A PETROBRAS","comp":"set/2024","valor":47072.7,"quitacao":null},{"tomador":"FLUMINENSE FOOTBALL CLUB","comp":"set/2024","valor":2195.59,"quitacao":null},{"tomador":"JUNTOS SOMOS MAIS FIDELIZACAO S.A.","comp":"set/2024","valor":5745.81,"quitacao":null},{"tomador":"OI S.A. - EM RECUPERACAO JUDICIAL","comp":"set/2024","valor":140552.68,"quitacao":null},{"tomador":"TICKET SERVICOS SA","comp":"set/2024","valor":15541.56,"quitacao":null},{"tomador":"360 IMPRIMIR COMPOSICAO DE PROJETOS GRAFICOS LTDA","comp":"set/2025","valor":1893.89,"quitacao":null},{"tomador":"YOUTILITY CENTER DO BRASIL SERVICOS DE INFORMATICA E TELEMARKETING LTDA","comp":"set/2025","valor":7509.07,"quitacao":null},{"tomador":"MILETO SERVIÇOS POR ASSINATURA DE TELEVISÃO S.A","comp":"set/2025","valor":12109.57,"quitacao":null},{"tomador":"BANCO DO ESTADO DO RIO GRANDE DO SUL SA","comp":"set/2025","valor":376.14,"quitacao":null},{"tomador":"BANCO ITAUCARD S.A.","comp":"set/2025","valor":1183.94,"quitacao":null},{"tomador":"CONTAX S.A. - EM RECUPERACAO JUDICIAL","comp":"set/2025","valor":137147.76,"quitacao":null},{"tomador":"ELFE OPERACAO E MANUTENCAO S.A. - EM RECUPERACAO JUDICIAL","comp":"set/2025","valor":5414.2,"quitacao":null},{"tomador":"FLUMINENSE FOOTBALL CLUB","comp":"set/2025","valor":1003.04,"quitacao":null},{"tomador":"JUNTOS SOMOS MAIS FIDELIZACAO S.A.","comp":"set/2025","valor":1783.99,"quitacao":null},{"tomador":"MUNICIPIO DE BELO HORIZONTE","comp":"set/2025","valor":9863.69,"quitacao":null},{"tomador":"OI S.A. - EM RECUPERACAO JUDICIAL","comp":"set/2025","valor":10188.02,"quitacao":null},{"tomador":"TICKET SERVICOS SA","comp":"set/2025","valor":13272.67,"quitacao":null},{"tomador":"TIM S A","comp":"set/2025","valor":280990.89,"quitacao":null}];
+const TOTAL=14692081.8;
+const fmt=v=>"R$ "+v.toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2});
+const fmtK=v=>v>=1000000?"R$ "+(v/1000000).toFixed(1)+"M":v>=1000?"R$ "+(v/1000).toFixed(0)+"K":"R$ "+v.toFixed(0);
+const pct=v=>(v/TOTAL*100).toFixed(1)+"%";
+Chart.defaults.font.family="'Segoe UI',Arial,sans-serif";Chart.defaults.font.size=11;Chart.defaults.color="#4A6060";
+const built={};const selT=new Set();const selC=new Set();
+function showPage(id){document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));document.querySelectorAll(".nav-tab").forEach(t=>t.classList.remove("active"));document.getElementById("page-"+id).classList.add("active");const map={home:0,tomador:1,competencia:2,ativos:3,demitidos:4,simulador:5};document.querySelectorAll(".nav-tab")[map[id]].classList.add("active");if(!built[id]){built[id]=true;buildPage(id);}}
+function buildPage(id){if(id==="tomador")buildTomador();if(id==="competencia")buildComp();if(id==="ativos")buildAtivos();if(id==="demitidos")buildDemitidos();if(id==="simulador")buildSimulador();}
+function buildTomador(){new Chart(document.getElementById("chartTomador"),{type:"bar",data:{labels:TOMADORES.map(t=>t.n),datasets:[{data:TOMADORES.map(t=>t.v),backgroundColor:TOMADORES.map((_,i)=>i===0?"#00BCB8":i===1?"#008F8C":i===2?"#33C9C5":"rgba(0,188,184,0.4)"),borderRadius:4,borderSkipped:false}]},options:{indexAxis:"y",responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{backgroundColor:"#1A2A2A",callbacks:{label:i=>` ${fmt(i.raw)}`}}},scales:{x:{grid:{color:"rgba(0,0,0,0.04)"},ticks:{callback:v=>fmtK(v)}},y:{grid:{display:false},ticks:{font:{size:10}}}}}});const tb=document.querySelector("#tableTomador tbody");TOMADORES.forEach((t,i)=>{const rc=i===0?'gold':i===1?'silver':i===2?'bronze':'';const tr=document.createElement('tr');tr.style.cursor='pointer';tr.title='Ver competências em aberto';tr.dataset.nome=t.n;tr.addEventListener('click',function(){openTomadorModal(this.dataset.nome);});tr.innerHTML=`<td><span class="rank ${rc}">${i+1}</span></td><td style="color:#1A2A2A">${t.n} <span style="font-size:.7rem;color:#00BCB8;margin-left:4px">▶ ver competências</span></td><td class="right mono bold" style="color:#008F8C">${fmt(t.v)}</td><td class="right" style="color:#8AABAB">${pct(t.v)}</td>`;tb.appendChild(tr);});}
+function buildComp(){const ctx=document.getElementById("chartComp").getContext("2d");const g=ctx.createLinearGradient(0,0,0,340);g.addColorStop(0,"rgba(0,188,184,0.3)");g.addColorStop(1,"rgba(0,188,184,0)");new Chart(ctx,{type:"line",data:{labels:COMPETENCIAS.map(c=>c.c),datasets:[{data:COMPETENCIAS.map(c=>c.v),borderColor:"#00BCB8",backgroundColor:g,borderWidth:2.5,fill:true,tension:0.3,pointRadius:4,pointBackgroundColor:"#00BCB8",pointBorderColor:"white",pointBorderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{backgroundColor:"#1A2A2A",callbacks:{label:i=>` ${fmt(i.raw)}`}}},scales:{x:{grid:{color:"rgba(0,0,0,0.04)"},ticks:{font:{size:10},maxRotation:45}},y:{grid:{color:"rgba(0,0,0,0.04)"},ticks:{callback:v=>fmtK(v)}}}}});const tb=document.querySelector("#tableComp tbody");COMPETENCIAS.forEach((c,i)=>{const tr=document.createElement('tr');tr.style.cursor='pointer';tr.title='Ver tomadores em aberto';tr.dataset.comp=c.c;tr.addEventListener('click',function(){openCompModal(this.dataset.comp);});tr.innerHTML=`<td><span class="rank">${i+1}</span></td><td style="font-weight:600">${c.c} <span style="font-size:.7rem;color:#00BCB8;margin-left:4px">▶ ver tomadores</span></td><td class="right mono bold" style="color:#008F8C">${fmt(c.v)}</td><td class="right" style="color:#8AABAB">${pct(c.v)}</td>`;tb.appendChild(tr);});}
+function buildAtivos(){new Chart(document.getElementById("chartFaixaAtivos"),{type:"bar",data:{labels:FAIXAS_A.map(f=>f.l),datasets:[{label:"Colaboradores",data:FAIXAS_A.map(f=>f.n),backgroundColor:"rgba(0,188,184,0.7)",borderRadius:6,borderSkipped:false,yAxisID:"y"},{label:"Total FGTS",data:FAIXAS_A.map(f=>f.t),backgroundColor:"rgba(0,143,140,0.5)",borderRadius:6,borderSkipped:false,yAxisID:"y2"}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,position:"top"},tooltip:{backgroundColor:"#1A2A2A",callbacks:{label:i=>i.datasetIndex===0?` ${i.raw.toLocaleString("pt-BR")} colaboradores`:` ${fmt(i.raw)}`}}},scales:{x:{grid:{display:false}},y:{grid:{color:"rgba(0,0,0,0.04)"},ticks:{callback:v=>v.toLocaleString("pt-BR")}},y2:{position:"right",grid:{display:false},ticks:{callback:v=>fmtK(v)}}}}});}
+function buildDemitidos(){new Chart(document.getElementById("chartFaixaDemit"),{type:"bar",data:{labels:FAIXAS_D.map(f=>f.l),datasets:[{label:"Colaboradores",data:FAIXAS_D.map(f=>f.n),backgroundColor:"rgba(255,71,87,0.65)",borderRadius:6,borderSkipped:false,yAxisID:"y"},{label:"Total FGTS",data:FAIXAS_D.map(f=>f.t),backgroundColor:"rgba(192,57,43,0.45)",borderRadius:6,borderSkipped:false,yAxisID:"y2"}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,position:"top"},tooltip:{backgroundColor:"#1A2A2A",callbacks:{label:i=>i.datasetIndex===0?` ${i.raw.toLocaleString("pt-BR")} colaboradores`:` ${fmt(i.raw)}`}}},scales:{x:{grid:{display:false}},y:{grid:{color:"rgba(0,0,0,0.04)"},ticks:{callback:v=>v.toLocaleString("pt-BR")}},y2:{position:"right",grid:{display:false},ticks:{callback:v=>fmtK(v)}}}}});}
+function buildSimulador(){const ct=document.getElementById("simCardsTomador");TOMADORES.forEach((t,i)=>{const d=document.createElement("div");d.className="click-card";d.id="sT"+i;d.innerHTML=`<div class="click-card-name">${t.n}</div><div class="click-card-value">${fmtK(t.v)}</div><div class="click-card-chk">✓</div>`;d.onclick=()=>toggle("T",i);ct.appendChild(d);});const cc=document.getElementById("simCardsComp");COMPETENCIAS.forEach((c,i)=>{const d=document.createElement("div");d.className="click-card";d.id="sC"+i;d.innerHTML=`<div class="click-card-name">${c.c}</div><div class="click-card-value">${fmtK(c.v)}</div><div class="click-card-chk">✓</div>`;d.onclick=()=>toggle("C",i);cc.appendChild(d);});}
+function toggle(type,i){const sel=type==="T"?selT:selC;const el=document.getElementById("s"+type+i);if(sel.has(i)){sel.delete(i);el.classList.remove("sel");}else{sel.add(i);el.classList.add("sel");}updateSim();}
+function selAll(type){const data=type==="T"?TOMADORES:COMPETENCIAS;const sel=type==="T"?selT:selC;data.forEach((_,i)=>{sel.add(i);const el=document.getElementById("s"+type+i);if(el)el.classList.add("sel");});updateSim();}
+function clrAll(type){const data=type==="T"?TOMADORES:COMPETENCIAS;const sel=type==="T"?selT:selC;data.forEach((_,i)=>{sel.delete(i);const el=document.getElementById("s"+type+i);if(el)el.classList.remove("sel");});updateSim();}
+function calcSim(){
+  var tNomes=new Set([...selT].map(function(i){return TOMADORES[i].n;}));
+  var cNomes=new Set([...selC].map(function(i){return COMPETENCIAS[i].c;}));
+  if(selT.size===0&&selC.size===0) return 0;
+  if(selT.size>0&&selC.size>0) return PIVOT.filter(function(p){return tNomes.has(p.tomador)&&cNomes.has(p.comp);}).reduce(function(s,p){return s+p.valor;},0);
+  if(selT.size>0) return PIVOT.filter(function(p){return tNomes.has(p.tomador);}).reduce(function(s,p){return s+p.valor;},0);
+  return PIVOT.filter(function(p){return cNomes.has(p.comp);}).reduce(function(s,p){return s+p.valor;},0);
+}
+function getValT(nome,cNomes){return selC.size>0?PIVOT.filter(function(p){return p.tomador===nome&&cNomes.has(p.comp);}).reduce(function(s,p){return s+p.valor;},0):PIVOT.filter(function(p){return p.tomador===nome;}).reduce(function(s,p){return s+p.valor;},0);}
+function getValC(comp,tNomes){return selT.size>0?PIVOT.filter(function(p){return p.comp===comp&&tNomes.has(p.tomador);}).reduce(function(s,p){return s+p.valor;},0):PIVOT.filter(function(p){return p.comp===comp;}).reduce(function(s,p){return s+p.valor;},0);}
+function updateSim(){
+  var tp=calcSim(); var rest=TOTAL-tp;
+  var tNomes=new Set([...selT].map(function(i){return TOMADORES[i].n;}));
+  var cNomes=new Set([...selC].map(function(i){return COMPETENCIAS[i].c;}));
+  document.getElementById("cntTomador").textContent=selT.size>0?selT.size+" selecionados":"";
+  document.getElementById("cntComp").textContent=selC.size>0?selC.size+" selecionadas":"";
+  document.getElementById("simValPagar").textContent=fmt(tp);
+  document.getElementById("simPctPagar").textContent=(tp/TOTAL*100).toFixed(1)+"% do total";
+  document.getElementById("simValRest").textContent=fmt(rest);
+  document.getElementById("simPctRest").textContent=(rest/TOTAL*100).toFixed(1)+"% do total";
+  var bdT=document.getElementById("bdTomador");
+  if(selT.size===0){bdT.innerHTML='<div style="padding:14px;text-align:center;color:var(--text3);font-size:.8rem">Nenhum tomador selecionado</div>';}
+  else{
+    var rowsT=[...selT].map(function(i){var n=TOMADORES[i].n;var v=getValT(n,cNomes);return '<div class="breakdown-row sel-row"><span class="breakdown-name">'+n+'</span><span class="breakdown-val">'+fmt(v)+'</span></div>';}).join("");
+    var subT=[...selT].reduce(function(s,i){return s+getValT(TOMADORES[i].n,cNomes);},0);
+    bdT.innerHTML=rowsT+'<div class="breakdown-row" style="background:#FFFDE7;font-weight:700"><span style="font-size:.78rem;color:#7A6000">Subtotal</span><span class="breakdown-val" style="color:var(--gold)">'+fmt(subT)+'</span></div>';
+  }
+  var bdC=document.getElementById("bdComp");
+  if(selC.size===0){bdC.innerHTML='<div style="padding:14px;text-align:center;color:var(--text3);font-size:.8rem">Nenhuma competência selecionada</div>';}
+  else{
+    var rowsC=[...selC].map(function(i){var c=COMPETENCIAS[i].c;var v=getValC(c,tNomes);return '<div class="breakdown-row sel-row"><span class="breakdown-name">'+c+'</span><span class="breakdown-val">'+fmt(v)+'</span></div>';}).join("");
+    var subC=[...selC].reduce(function(s,i){return s+getValC(COMPETENCIAS[i].c,tNomes);},0);
+    bdC.innerHTML=rowsC+'<div class="breakdown-row" style="background:#FFFDE7;font-weight:700"><span style="font-size:.78rem;color:#7A6000">Subtotal</span><span class="breakdown-val" style="color:var(--gold)">'+fmt(subC)+'</span></div>';
+  }
+}
+let modalData=[],modalType="",modalFiltered=[];
+function openModal(type){modalType=type;modalData=type==="ativos"?ATIVOS:DEMITIDOS;modalFiltered=[...modalData];document.getElementById("modalTitle").textContent=type==="ativos"?"Colaboradores Ativos":"Colaboradores Demitidos";document.getElementById("modalSubtitle").textContent=`${modalData.length.toLocaleString("pt-BR")} colaboradores`;document.getElementById("modalSearch").value="";const isRed=type==="demitidos";document.getElementById("modalThead").innerHTML=`<tr><th class="${isRed?"red-h":""}">#</th><th class="${isRed?"red-h":""}">Nome</th><th class="${isRed?"red-h":""} right">Valor FGTS</th></tr>`;renderModalRows();document.getElementById("modalOverlay").classList.add("open");}
+function renderModalRows(){const isRed=modalType==="demitidos";const color=isRed?"#E53935":"#008F8C";const tbody=document.getElementById("modalTbody");tbody.innerHTML=modalFiltered.slice(0,500).map((d,i)=>{const rc=i===0?"gold":i===1?"silver":i===2?"bronze":isRed?"red-r":"";return `<tr><td><span class="rank-n ${rc}">${i+1}</span></td><td style="font-size:.8rem">${d.n}</td><td class="right mono bold" style="color:${color}">${fmt(d.v)}</td></tr>`;}).join("");if(modalFiltered.length>500)tbody.innerHTML+=`<tr><td colspan="3" style="text-align:center;padding:14px;color:var(--text3);font-size:.8rem">... e mais ${(modalFiltered.length-500).toLocaleString("pt-BR")} colaboradores. Use a busca.</td></tr>`;}
+function filterModal(){const q=document.getElementById("modalSearch").value.toLowerCase();modalFiltered=q?modalData.filter(d=>d.n.toLowerCase().includes(q)):[...modalData];document.getElementById("modalSubtitle").textContent=`${modalFiltered.length.toLocaleString("pt-BR")} colaboradores encontrados`;renderModalRows();}
+function closeModal(){document.getElementById("modalOverlay").classList.remove("open");}
+function closeModalBg(e){if(e.target===document.getElementById("modalOverlay"))closeModal();}
+document.addEventListener("keydown",e=>{if(e.key==="Escape")closeModal();});
+
+// ─── Modal Competências por Tomador ───────────────────────────────────────────
+function openTomadorModal(nomeTomador) {
+  // Filtrar PIVOT: apenas registros do tomador + sem quitacao
+  const comps = PIVOT
+    .filter(p => p.tomador === nomeTomador && p.quitacao === null)
+    .sort((a, b) => {
+      // Ordenar por competência: primeiro ano/mês, depois 13o
+      const ordem = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez','13o'];
+      const parse = c => {
+        const [mes, ano] = c.split('/');
+        return (ano || '9999') + String(ordem.indexOf(mes)).padStart(2,'0');
+      };
+      return parse(a.comp).localeCompare(parse(b.comp));
+    });
+
+  const total = comps.reduce((s, p) => s + p.valor, 0);
+
+  document.getElementById('tomadorModalTitle').textContent = nomeTomador;
+  document.getElementById('tomadorModalSubtitle').textContent =
+    comps.length === 0
+      ? 'Nenhuma competência em aberto'
+      : `${comps.length} competência${comps.length > 1 ? 's' : ''} em aberto · Total: ${fmt(total)}`;
+
+  const tbody = document.getElementById('tomadorModalTbody');
+  if (comps.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;padding:32px;color:#8AABAB">
+      ✅ Todas as competências estão quitadas
+    </td></tr>`;
+  } else {
+    tbody.innerHTML = comps.map((p, i) => `
+      <tr>
+        <td style="color:#8AABAB">${i+1}</td>
+        <td><span style="background:#E0F7F7;color:#008F8C;border-radius:6px;padding:3px 10px;font-size:.82rem;font-weight:600">${p.comp}</span></td>
+        <td class="right mono bold" style="color:#008F8C">${fmt(p.valor)}</td>
+        <td style="text-align:center"><span style="background:#FFF3CD;color:#856404;border-radius:6px;padding:2px 8px;font-size:.72rem;font-weight:600">EM ABERTO</span></td>
+      </tr>
+    `).join('');
+  }
+
+  document.getElementById('tomadorModalOverlay').classList.add('open');
+}
+
+function closeTomadorModal() {
+  document.getElementById('tomadorModalOverlay').classList.remove('open');
+}
+
+function closeTomadorModalBg(e) {
+  if (e.target === document.getElementById('tomadorModalOverlay')) closeTomadorModal();
+}
+
+
+// ─── Modal Tomadores por Competência ──────────────────────────────────────────
+function openCompModal(competencia) {
+  const tomadores = PIVOT
+    .filter(p => p.comp === competencia && p.quitacao === null)
+    .sort((a, b) => b.valor - a.valor);
+
+  const total = tomadores.reduce((s, p) => s + p.valor, 0);
+
+  document.getElementById('compModalTitle').textContent = 'Competência: ' + competencia;
+  document.getElementById('compModalSubtitle').textContent =
+    tomadores.length === 0
+      ? 'Nenhum tomador em aberto'
+      : tomadores.length + ' tomador' + (tomadores.length > 1 ? 'es' : '') + ' em aberto · Total: ' + fmt(total);
+
+  const tbody = document.getElementById('compModalTbody');
+  if (tomadores.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:32px;color:#8AABAB">✅ Competência totalmente quitada</td></tr>';
+  } else {
+    tbody.innerHTML = tomadores.map((p, i) => `
+      <tr style="cursor:pointer" onclick="closeCompModal();openTomadorModal('${p.tomador.replace(/'/g,"\'")}')" title="Ver todas as competências em aberto deste tomador">
+        <td style="color:#8AABAB">${i+1}</td>
+        <td style="color:#1A2A2A">
+          ${p.tomador}
+          <span style="font-size:.68rem;color:#00BCB8;margin-left:4px">▶ ver tomador</span>
+        </td>
+        <td class="right mono bold" style="color:#008F8C">${fmt(p.valor)}</td>
+        <td style="text-align:center">
+          <span style="background:#FFF3CD;color:#856404;border-radius:6px;padding:2px 8px;font-size:.72rem;font-weight:600">EM ABERTO</span>
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  document.getElementById('compModalOverlay').classList.add('open');
+}
+
+function closeCompModal() {
+  document.getElementById('compModalOverlay').classList.remove('open');
+}
+
+function closeCompModalBg(e) {
+  if (e.target === document.getElementById('compModalOverlay')) closeCompModal();
+}
+
+</script>
+</body>
+</html>
